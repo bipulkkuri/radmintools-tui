@@ -16,5 +16,5 @@ A terminal user interfaces or common admin tools
 ## HTML Encode
 <img src="./images/html-encode.png" alt="Demo MD5 hashing">
 
-## HTML Decode.png
+## HTML Decode
 <img src="./images/html-decode.png" alt="Demo MD5 hashing">
