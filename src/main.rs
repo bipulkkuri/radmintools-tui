@@ -1,6 +1,6 @@
-use std::io;
-
 use crossterm::event::{self, Event, KeyCode};
+use html_escape::{decode_html_entities, encode_text};
+use std::io;
 
 use base64::{decode_config, encode_config, URL_SAFE};
 use md5;
@@ -11,6 +11,8 @@ use ratatui::{
     widgets::{Block, List, ListState, Paragraph, Wrap},
     DefaultTerminal, Frame,
 };
+use serde_json::{to_string_pretty, Value};
+
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
 
@@ -41,14 +43,15 @@ enum InputMode {
     Editing,
 }
 
-const ITEMS: [&str; 7] = [
+const ITEMS: [&str; 8] = [
     "0. MD5 HASH",
     "1. Base64 Encode",
     "2. Base64 Decode",
     "3. Base64-EncodeURL",
     "4. Base64-DecodeURL",
-    "5. SAML-Encode",
-    "6. SAML-Decode",
+    "5. Pretty Json",
+    "6. HTML Encode",
+    "7. HTML Decode",
 ];
 
 impl App {
@@ -79,13 +82,13 @@ impl App {
             }
         }
     }
-
+    //press e
     fn start_editing(&mut self) {
         // println!("{:?}", list_state.selected());
         self.input.reset();
         self.input_mode = InputMode::Editing
     }
-
+    //press esc
     fn stop_editing(&mut self) {
         self.input.reset();
         self.message.clear();
@@ -93,7 +96,7 @@ impl App {
         self.message = String::new();
         self.input_mode = InputMode::Normal;
     }
-
+    //press enter
     fn push_message(&mut self, list_state: &mut ListState) {
         //println!("{:?}", list_state.selected());
         //self.messages.push(self.input.value().into());
@@ -113,7 +116,7 @@ impl App {
         let [top, main] = vertical.areas(frame.area());
         let [left, middle, right] = horizontal.areas(main);
 
-        let title = Text::from_iter([Span::from("Admin ToolBox,Press q to exit e to start editing.Press Esc to stop editing, Enter to record the message").bold()]);
+        let title = Text::from_iter([Span::from("Admin ToolBox,Press q to exit e to start editing.Press Esc to stop editing, Enter to process the message").bold()]);
         frame.render_widget(title.centered(), top);
 
         // self.render_help_message(frame, left);
@@ -127,7 +130,7 @@ impl App {
     fn render_admin_list(&self, frame: &mut Frame, area: Rect, list_state: &mut ListState) {
         let list = List::new(ITEMS)
             .style(Color::White)
-            .block(Block::bordered().title("Pick"))
+            .block(Block::bordered().title("Pick a number"))
             .highlight_style(Modifier::REVERSED)
             .highlight_symbol("> ");
 
@@ -160,52 +163,7 @@ impl App {
         let message = self.message.to_string();
         let mut process_msg = String::new();
         let mut title_msg = String::from("Output");
-        if !message.is_empty() {
-            if self.id == 0 {
-                process_msg = self.compute_md5(message);
-                title_msg.clear();
-                title_msg.push_str(" MD5");
-
-                self.message.clear();
-            } else if self.id == 1 {
-                process_msg = self.base64_encode(message.as_bytes());
-                title_msg.clear();
-                title_msg.push_str(" base64_encode");
-            } else if self.id == 2 {
-                // Base64 Decode logic (as an example, you could modify or add logic for other options)
-                match self.base64_decode(&message) {
-                    Ok(decoded) => {
-                        process_msg = String::from_utf8_lossy(&decoded).to_string();
-                        title_msg.clear();
-                        title_msg.push_str(" base64_decode");
-                        // Decode and display result
-                    }
-                    Err(_) => {
-                        process_msg = "Error in Base64 decoding".to_string(); // Error message if decoding fails
-                    }
-                }
-                self.message.clear();
-            } else if self.id == 3 {
-                process_msg = self.base64_url_encode(message.as_bytes());
-                title_msg.clear();
-                title_msg.push_str(" base64_url_encode");
-                self.message.clear();
-            } else if self.id == 4 {
-                match self.base64_url_decode(&message) {
-                    Ok(decoded) => {
-                        process_msg = String::from_utf8_lossy(&decoded).to_string();
-                        title_msg.clear();
-                        title_msg.push_str(" base64_url_decode");
-                    }
-                    Err(_) => {
-                        process_msg = "Error in Base64 URL decoding".to_string();
-                    }
-                }
-                self.message.clear();
-            } else {
-                process_msg = message;
-            };
-        };
+        self.process_input(message, &mut process_msg, &mut title_msg);
 
         let out_message = Paragraph::new(process_msg)
             .style(Color::White)
@@ -214,6 +172,85 @@ impl App {
             .wrap(Wrap { trim: true });
         // println!("selected {:?}", self.id);
         frame.render_widget(out_message, area);
+    }
+
+    fn process_input(&mut self, message: String, process_msg: &mut String, title_msg: &mut String) {
+        if !message.is_empty() {
+            match self.id {
+                0 => {
+                    *process_msg = self.compute_md5(message);
+                    title_msg.clear();
+                    title_msg.push_str(" MD5");
+                    self.message.clear();
+                }
+                1 => {
+                    *process_msg = self.base64_encode(message.as_bytes());
+                    title_msg.clear();
+                    title_msg.push_str(" base64_encode");
+                    self.message.clear();
+                }
+                2 => {
+                    // Base64 Decode logic
+                    match self.base64_decode(&message) {
+                        Ok(decoded) => {
+                            *process_msg = String::from_utf8_lossy(&decoded).to_string();
+                            title_msg.clear();
+                            title_msg.push_str(" base64_decode");
+                        }
+                        Err(_) => {
+                            *process_msg = "Error in Base64 decoding".to_string();
+                        }
+                    }
+                    self.message.clear();
+                }
+                3 => {
+                    *process_msg = self.base64_url_encode(message.as_bytes());
+                    title_msg.clear();
+                    title_msg.push_str(" base64_url_encode");
+                    self.message.clear();
+                }
+                4 => {
+                    match self.base64_url_decode(&message) {
+                        Ok(decoded) => {
+                            *process_msg = String::from_utf8_lossy(&decoded).to_string();
+                            title_msg.clear();
+                            title_msg.push_str(" base64_url_decode");
+                        }
+                        Err(_) => {
+                            *process_msg = "Error in Base64 URL decoding".to_string();
+                        }
+                    }
+                    self.message.clear();
+                }
+                5 => {
+                    match self.pretty_json_from_string(&message) {
+                        Ok(pretty_json) => {
+                            *process_msg = pretty_json;
+                        }
+                        Err(_) => {
+                            *process_msg = "Error in JSON parsing".to_string();
+                        }
+                    }
+                    title_msg.clear();
+                    title_msg.push_str(" pretty_json");
+                    self.message.clear();
+                }
+                6 => {
+                    *process_msg = self.encode_html_string(message);
+                    title_msg.clear();
+                    title_msg.push_str(" HTML encode");
+                    self.message.clear();
+                }
+                7 => {
+                    *process_msg = self.decode_html_string(message);
+                    title_msg.push_str(" HTML decode");
+                    self.message.clear();
+                }
+                _ => {
+                    *process_msg = message; // Default case when no matching id
+                }
+            };
+        };
     }
 
     /// Computes the MD5 hash of a string and returns the hash as a hexadecimal string.
@@ -237,5 +274,21 @@ impl App {
     // Base64 URL decoding
     fn base64_url_decode(&self, input: &str) -> Result<Vec<u8>, base64::DecodeError> {
         decode_config(input, URL_SAFE)
+    }
+    //pretty json
+    fn pretty_json_from_string(&self, json_str: &str) -> Result<String, serde_json::Error> {
+        // Parse the input JSON string into a serde_json Value
+        let parsed_json: Value = serde_json::from_str(json_str)?;
+
+        // Convert the parsed JSON to a pretty-printed JSON string and return it
+        to_string_pretty(&parsed_json)
+    }
+    //html encode
+    fn encode_html_string(&self, input: String) -> String {
+        encode_text(&input).to_string()
+    }
+    //html decode
+    fn decode_html_string(&self, input: String) -> String {
+        decode_html_entities(&input).to_string()
     }
 }
