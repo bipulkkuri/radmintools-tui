@@ -1,8 +1,7 @@
-use crossterm::event::{self, Event, KeyCode};
-use html_escape::{decode_html_entities, encode_text};
-use std::io;
-
 use base64::{decode_config, encode_config, URL_SAFE};
+use crossterm::event::{self, Event, KeyCode};
+use hex::{decode, encode};
+use html_escape::{decode_html_entities, encode_text};
 use md5;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
@@ -12,6 +11,7 @@ use ratatui::{
     DefaultTerminal, Frame,
 };
 use serde_json::{to_string_pretty, Value};
+use std::io;
 
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
@@ -43,7 +43,7 @@ enum InputMode {
     Editing,
 }
 
-const ITEMS: [&str; 8] = [
+const ITEMS: [&str; 10] = [
     "0. MD5 HASH",
     "1. Base64 Encode",
     "2. Base64 Decode",
@@ -52,6 +52,8 @@ const ITEMS: [&str; 8] = [
     "5. Pretty Json",
     "6. HTML Encode",
     "7. HTML Decode",
+    "8. String to Hex",
+    "9. Hex to String",
 ];
 
 impl App {
@@ -130,7 +132,7 @@ impl App {
     fn render_admin_list(&self, frame: &mut Frame, area: Rect, list_state: &mut ListState) {
         let list = List::new(ITEMS)
             .style(Color::White)
-            .block(Block::bordered().title("Pick a number"))
+            .block(Block::bordered().title(" Pick operation using UP/DOWN ↑↓ "))
             .highlight_style(Modifier::REVERSED)
             .highlight_symbol("> ");
 
@@ -148,7 +150,7 @@ impl App {
         let input = Paragraph::new(self.input.value())
             .style(style)
             .scroll((0, scroll as u16))
-            .block(Block::bordered().title("Input"));
+            .block(Block::bordered().title(" Input"));
         frame.render_widget(input, area);
 
         if self.input_mode == InputMode::Editing {
@@ -176,16 +178,15 @@ impl App {
 
     fn process_input(&mut self, message: String, process_msg: &mut String, title_msg: &mut String) {
         if !message.is_empty() {
+            title_msg.clear();
             match self.id {
                 0 => {
                     *process_msg = self.compute_md5(message);
-                    title_msg.clear();
                     title_msg.push_str(" MD5");
                     self.message.clear();
                 }
                 1 => {
                     *process_msg = self.base64_encode(message.as_bytes());
-                    title_msg.clear();
                     title_msg.push_str(" base64_encode");
                     self.message.clear();
                 }
@@ -194,7 +195,6 @@ impl App {
                     match self.base64_decode(&message) {
                         Ok(decoded) => {
                             *process_msg = String::from_utf8_lossy(&decoded).to_string();
-                            title_msg.clear();
                             title_msg.push_str(" base64_decode");
                         }
                         Err(_) => {
@@ -205,7 +205,6 @@ impl App {
                 }
                 3 => {
                     *process_msg = self.base64_url_encode(message.as_bytes());
-                    title_msg.clear();
                     title_msg.push_str(" base64_url_encode");
                     self.message.clear();
                 }
@@ -213,7 +212,6 @@ impl App {
                     match self.base64_url_decode(&message) {
                         Ok(decoded) => {
                             *process_msg = String::from_utf8_lossy(&decoded).to_string();
-                            title_msg.clear();
                             title_msg.push_str(" base64_url_decode");
                         }
                         Err(_) => {
@@ -231,19 +229,30 @@ impl App {
                             *process_msg = "Error in JSON parsing".to_string();
                         }
                     }
-                    title_msg.clear();
+
                     title_msg.push_str(" pretty_json");
                     self.message.clear();
                 }
                 6 => {
                     *process_msg = self.encode_html_string(message);
-                    title_msg.clear();
-                    title_msg.push_str(" HTML encode");
+
+                    title_msg.push_str(" HTML Encode");
                     self.message.clear();
                 }
                 7 => {
                     *process_msg = self.decode_html_string(message);
-                    title_msg.push_str(" HTML decode");
+
+                    title_msg.push_str(" HTML Decode");
+                    self.message.clear();
+                }
+                8 => {
+                    *process_msg = self.string_to_hex(&message);
+                    title_msg.push_str(" String to Hex");
+                    self.message.clear();
+                }
+                9 => {
+                    *process_msg = self.hex_to_string(&message);
+                    title_msg.push_str(" Hex to String");
                     self.message.clear();
                 }
                 _ => {
@@ -290,5 +299,17 @@ impl App {
     //html decode
     fn decode_html_string(&self, input: String) -> String {
         decode_html_entities(&input).to_string()
+    }
+    //string to hex
+    fn string_to_hex(&self, input: &str) -> String {
+        // Convert the string to bytes and then encode to hex
+        encode(input.as_bytes())
+    }
+    //hex to string
+    fn hex_to_string(&self, hex: &str) -> String {
+        // Decode the hex string back to bytes
+        let bytes = decode(hex).expect("Invalid hex string");
+        // Convert the bytes back to a String
+        String::from_utf8_lossy(&bytes).to_string()
     }
 }

@@ -25,6 +25,7 @@ base64 = "0.13"
 md5 = "0.7.0"
 base64-url = "3.0.0"
 html-escape = "0.2.13"
+hex = "0.4.3"
 
 
 [build]

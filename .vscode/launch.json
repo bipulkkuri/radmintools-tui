@@ -8,15 +8,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'endecoder-tui'",
+            "name": "Debug executable 'radmintools-tui'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=endecoder-tui",
-                    "--package=endecoder-tui"
+                    "--bin=radmintools-tui",
+                    "--package=radmintools-tui"
                 ],
                 "filter": {
-                    "name": "endecoder-tui",
+                    "name": "radmintools-tui",
                     "kind": "bin"
                 }
             },
@@ -26,16 +26,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'endecoder-tui'",
+            "name": "Debug unit tests in executable 'radmintools-tui'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=endecoder-tui",
-                    "--package=endecoder-tui"
+                    "--bin=radmintools-tui",
+                    "--package=radmintools-tui"
                 ],
                 "filter": {
-                    "name": "endecoder-tui",
+                    "name": "radmintools-tui",
                     "kind": "bin"
                 }
             },

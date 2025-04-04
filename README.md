@@ -18,3 +18,9 @@ A terminal user interfaces or common admin tools
 
 ## HTML Decode
 <img src="./images/html-decode.png" alt="Demo MD5 hashing">
+
+## String to HEX
+<img src="./images/String2hex.png" alt="Demo MD5 hashing">
+
+## HEX to String
+<img src="./images/Hex2String.png" alt="Demo MD5 hashing">
