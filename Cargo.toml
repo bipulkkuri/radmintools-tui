@@ -7,8 +7,11 @@ description = """
 A terminal user interfaces or common admin tools
 """
 readme = "README.md"
+keywords = ["admin tools", "tui", "terminal", "ui"]
+categories = ["command-line-utilities"]
 license = "MIT"
 exclude = ["assets/*", ".github", "Makefile.toml", "CONTRIBUTING.md", "*.log", "tags"]
+repository = "https://github.com/bipulkkuri/radmintools-tui" 
 
 [dependencies]
 chrono = "0.4.40"
@@ -37,5 +40,8 @@ opt-level = 0
 
 [profile.release]
 opt-level = 3
-
+debug = false
+lto = true
+incremental = true
+codegen-units = 1
 

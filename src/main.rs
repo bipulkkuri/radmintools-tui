@@ -3,9 +3,10 @@ mod utils;
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
     layout::{Constraint, Layout, Rect},
+    prelude::Alignment,
     style::{Color, Modifier, Style, Stylize},
     text::{Span, Text},
-    widgets::{Block, List, ListState, Paragraph, Wrap},
+    widgets::{Block, BorderType, Borders, List, ListState, Paragraph, Wrap},
     DefaultTerminal, Frame,
 };
 use tui_input::backend::crossterm::EventHandler;
@@ -94,7 +95,7 @@ impl App {
         let [top, main] = vertical.areas(frame.area());
         let [left, middle, right] = horizontal.areas(main);
 
-        let title = Text::from_iter([Span::from("Admin ToolBox,Press q to exit e to start editing.Press Esc to stop editing, Enter to process the message").bold()]);
+        let title = Text::from_iter([Span::from("Admin ToolBox,Press q to exit e to start editing.Press Esc to stop editing, Enter to process the input").bold()]);
         frame.render_widget(title.centered(), top);
 
         self.render_admin_list(frame, left, list_state);
@@ -105,7 +106,15 @@ impl App {
     fn render_admin_list(&self, frame: &mut Frame, area: Rect, list_state: &mut ListState) {
         let list = List::new(ITEMS)
             .style(Color::White)
-            .block(Block::bordered().title(" Pick operation using UP/DOWN ↑↓ "))
+            // .block(Block::bordered().title(" Pick operation using UP/DOWN ↑↓ "))
+            .block(
+                Block::default()
+                    //.style(Style::default().bg(Color::Black).fg(Color::Black))
+                    .title(" Pick operation using UP/DOWN ↑↓ ")
+                    .title_alignment(Alignment::Left)
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded), //  .border_style(Style::default().bg(Color::White).fg(Color::Black)),
+            )
             .highlight_style(Modifier::REVERSED)
             .highlight_symbol("> ");
 
@@ -122,7 +131,15 @@ impl App {
         let input = Paragraph::new(self.input.value())
             .style(style)
             .scroll((0, scroll as u16))
-            .block(Block::bordered().title(" Input"));
+            //  .block(Block::bordered().title(" Input"));
+            .block(
+                Block::default()
+                    //.style(Style::default().bg(Color::Black).fg(Color::Black))
+                    .title(" Input")
+                    .title_alignment(Alignment::Left)
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded), //  .border_style(Style::default().bg(Color::White).fg(Color::Black)),
+            );
         frame.render_widget(input, area);
 
         if self.input_mode == InputMode::Editing {
@@ -136,10 +153,21 @@ impl App {
         let mut process_msg = String::new();
         let mut title_msg = String::from(" Output");
         self.process_input(message, &mut process_msg, &mut title_msg);
-
+        let mut style = Style::default();
+        if !process_msg.is_empty() {
+            style = Color::LightCyan.into();
+        }
         let out_message = Paragraph::new(process_msg)
-            .style(Color::White)
-            .block(Block::bordered().title(title_msg))
+            .style(style)
+            //.block(Block::bordered().title(title_msg))
+            .block(
+                Block::default()
+                    //.style(Style::default().bg(Color::Black).fg(Color::Black))
+                    .title(title_msg)
+                    .title_alignment(Alignment::Left)
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded), //  .border_style(Style::default().bg(Color::White).fg(Color::Black)),
+            )
             .scroll((0, 0))
             .wrap(Wrap { trim: true });
 
