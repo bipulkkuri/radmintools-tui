@@ -1,7 +1,7 @@
 
 # RUST ADMIN TOOLS
 
-A terminal user interfaces or common admin tools
+A terminal user interfaces or common admin tools, with clipboard copy past support on terminal.
 
 
 ## Initial Screen
