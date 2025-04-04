@@ -1,8 +1,6 @@
-use base64::{decode_config, encode_config, URL_SAFE};
+mod utils;
+
 use crossterm::event::{self, Event, KeyCode};
-use hex::{decode, encode};
-use html_escape::{decode_html_entities, encode_text};
-use md5;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -10,38 +8,9 @@ use ratatui::{
     widgets::{Block, List, ListState, Paragraph, Wrap},
     DefaultTerminal, Frame,
 };
-use serde_json::{to_string_pretty, Value};
-use std::io;
-
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
-
-fn main() -> io::Result<()> {
-    let mut terminal = ratatui::init();
-    let result = App::default().run(&mut terminal);
-    ratatui::restore();
-    result
-}
-
-/// App holds the state of the application
-#[derive(Debug, Default)]
-struct App {
-    /// Current value of the input box
-    input: Input,
-    /// Current input mode
-    input_mode: InputMode,
-    /// text
-    message: String,
-    /// index
-    id: usize,
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-enum InputMode {
-    #[default]
-    Normal,
-    Editing,
-}
+use utils::{base64, hex, html, json, md5};
 
 const ITEMS: [&str; 10] = [
     "0. MD5 HASH",
@@ -56,13 +25,27 @@ const ITEMS: [&str; 10] = [
     "9. Hex to String",
 ];
 
+#[derive(Debug, Default)]
+struct App {
+    input: Input,
+    input_mode: InputMode,
+    message: String,
+    id: usize,
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+enum InputMode {
+    #[default]
+    Normal,
+    Editing,
+}
+
 impl App {
-    fn run(mut self, terminal: &mut DefaultTerminal) -> io::Result<()> {
+    fn run(mut self, terminal: &mut DefaultTerminal) -> std::io::Result<()> {
         let mut list_state = ListState::default();
         list_state.select_first();
         loop {
             terminal.draw(|frame| self.render(frame, &mut list_state))?;
-
             let event = event::read()?;
             if let Event::Key(key) = event {
                 match self.input_mode {
@@ -84,13 +67,12 @@ impl App {
             }
         }
     }
-    //press e
+
     fn start_editing(&mut self) {
-        // println!("{:?}", list_state.selected());
         self.input.reset();
         self.input_mode = InputMode::Editing
     }
-    //press esc
+
     fn stop_editing(&mut self) {
         self.input.reset();
         self.message.clear();
@@ -98,18 +80,12 @@ impl App {
         self.message = String::new();
         self.input_mode = InputMode::Normal;
     }
-    //press enter
+
     fn push_message(&mut self, list_state: &mut ListState) {
-        //println!("{:?}", list_state.selected());
-        //self.messages.push(self.input.value().into());
         self.message.push_str(self.input.value().into());
         if let Some(i) = list_state.selected() {
-            // Perform some logic based on the selected index (e.g., updating an item).
-            // println!("Selected index: {}", i);
             self.id = i;
         }
-
-        // self.input.reset();
     }
 
     fn render(&mut self, frame: &mut Frame, list_state: &mut ListState) {
@@ -121,14 +97,11 @@ impl App {
         let title = Text::from_iter([Span::from("Admin ToolBox,Press q to exit e to start editing.Press Esc to stop editing, Enter to process the message").bold()]);
         frame.render_widget(title.centered(), top);
 
-        // self.render_help_message(frame, left);
-
         self.render_admin_list(frame, left, list_state);
         self.render_input(frame, middle);
         self.render_messages(frame, right);
     }
 
-    /// Render a list.
     fn render_admin_list(&self, frame: &mut Frame, area: Rect, list_state: &mut ListState) {
         let list = List::new(ITEMS)
             .style(Color::White)
@@ -140,7 +113,6 @@ impl App {
     }
 
     fn render_input(&self, frame: &mut Frame, area: Rect) {
-        // keep 2 for borders and 1 for cursor
         let width = area.width.max(3) - 3;
         let scroll = self.input.visual_scroll(width as usize);
         let style = match self.input_mode {
@@ -154,8 +126,6 @@ impl App {
         frame.render_widget(input, area);
 
         if self.input_mode == InputMode::Editing {
-            // Ratatui hides the cursor unless it's explicitly set. Position the  cursor past the
-            // end of the input text and one line down from the border to the input line
             let x = self.input.visual_cursor().max(scroll) - scroll + 1;
             frame.set_cursor_position((area.x + x as u16, area.y + 1))
         }
@@ -164,7 +134,7 @@ impl App {
     fn render_messages(&mut self, frame: &mut Frame, area: Rect) {
         let message = self.message.to_string();
         let mut process_msg = String::new();
-        let mut title_msg = String::from("Output");
+        let mut title_msg = String::from(" Output");
         self.process_input(message, &mut process_msg, &mut title_msg);
 
         let out_message = Paragraph::new(process_msg)
@@ -172,7 +142,7 @@ impl App {
             .block(Block::bordered().title(title_msg))
             .scroll((0, 0))
             .wrap(Wrap { trim: true });
-        // println!("selected {:?}", self.id);
+
         frame.render_widget(out_message, area);
     }
 
@@ -181,47 +151,37 @@ impl App {
             title_msg.clear();
             match self.id {
                 0 => {
-                    *process_msg = self.compute_md5(message);
+                    *process_msg = md5::compute_md5(message.clone()).to_string();
                     title_msg.push_str(" MD5");
-                    self.message.clear();
                 }
                 1 => {
-                    *process_msg = self.base64_encode(message.as_bytes());
+                    *process_msg = base64::base64_encode_std(message.as_bytes());
                     title_msg.push_str(" base64_encode");
-                    self.message.clear();
                 }
-                2 => {
-                    // Base64 Decode logic
-                    match self.base64_decode(&message) {
-                        Ok(decoded) => {
-                            *process_msg = String::from_utf8_lossy(&decoded).to_string();
-                            title_msg.push_str(" base64_decode");
-                        }
-                        Err(_) => {
-                            *process_msg = "Error in Base64 decoding".to_string();
-                        }
+                2 => match base64::base64_decode_std(&message) {
+                    Ok(decoded) => {
+                        *process_msg = String::from_utf8_lossy(&decoded).to_string();
+                        title_msg.push_str(" base64_decode");
                     }
-                    self.message.clear();
-                }
+                    Err(_) => {
+                        *process_msg = "Error in Base64 decoding".to_string();
+                    }
+                },
                 3 => {
-                    *process_msg = self.base64_url_encode(message.as_bytes());
+                    *process_msg = base64::base64_encode(message.as_bytes());
                     title_msg.push_str(" base64_url_encode");
-                    self.message.clear();
                 }
-                4 => {
-                    match self.base64_url_decode(&message) {
-                        Ok(decoded) => {
-                            *process_msg = String::from_utf8_lossy(&decoded).to_string();
-                            title_msg.push_str(" base64_url_decode");
-                        }
-                        Err(_) => {
-                            *process_msg = "Error in Base64 URL decoding".to_string();
-                        }
+                4 => match base64::base64_decode(&message) {
+                    Ok(decoded) => {
+                        *process_msg = String::from_utf8_lossy(&decoded).to_string();
+                        title_msg.push_str(" base64_url_decode");
                     }
-                    self.message.clear();
-                }
+                    Err(_) => {
+                        *process_msg = "Error in Base64 URL decoding".to_string();
+                    }
+                },
                 5 => {
-                    match self.pretty_json_from_string(&message) {
+                    match json::pretty_json_from_string(&message) {
                         Ok(pretty_json) => {
                             *process_msg = pretty_json;
                         }
@@ -229,87 +189,36 @@ impl App {
                             *process_msg = "Error in JSON parsing".to_string();
                         }
                     }
-
                     title_msg.push_str(" pretty_json");
-                    self.message.clear();
                 }
                 6 => {
-                    *process_msg = self.encode_html_string(message);
-
+                    *process_msg = html::encode_html_string(message);
                     title_msg.push_str(" HTML Encode");
-                    self.message.clear();
                 }
                 7 => {
-                    *process_msg = self.decode_html_string(message);
-
+                    *process_msg = html::decode_html_string(message);
                     title_msg.push_str(" HTML Decode");
-                    self.message.clear();
                 }
                 8 => {
-                    *process_msg = self.string_to_hex(&message);
+                    *process_msg = hex::string_to_hex(&message);
                     title_msg.push_str(" String to Hex");
-                    self.message.clear();
                 }
                 9 => {
-                    *process_msg = self.hex_to_string(&message);
+                    *process_msg = hex::hex_to_string(&message);
                     title_msg.push_str(" Hex to String");
-                    self.message.clear();
                 }
                 _ => {
-                    *process_msg = message; // Default case when no matching id
+                    *process_msg = message;
                 }
             };
-        };
+            self.message.clear();
+        }
     }
+}
 
-    /// Computes the MD5 hash of a string and returns the hash as a hexadecimal string.
-    fn compute_md5(&self, input: String) -> String {
-        let hash = md5::compute(input);
-        // Return the hash as a hexadecimal string
-        format!("{:x}", hash)
-    }
-
-    fn base64_encode(&self, input: &[u8]) -> String {
-        base64::encode(input)
-    }
-
-    fn base64_decode(&self, input: &str) -> Result<Vec<u8>, base64::DecodeError> {
-        base64::decode(input)
-    }
-    // Base64 URL encoding
-    fn base64_url_encode(&self, input: &[u8]) -> String {
-        encode_config(input, URL_SAFE)
-    }
-    // Base64 URL decoding
-    fn base64_url_decode(&self, input: &str) -> Result<Vec<u8>, base64::DecodeError> {
-        decode_config(input, URL_SAFE)
-    }
-    //pretty json
-    fn pretty_json_from_string(&self, json_str: &str) -> Result<String, serde_json::Error> {
-        // Parse the input JSON string into a serde_json Value
-        let parsed_json: Value = serde_json::from_str(json_str)?;
-
-        // Convert the parsed JSON to a pretty-printed JSON string and return it
-        to_string_pretty(&parsed_json)
-    }
-    //html encode
-    fn encode_html_string(&self, input: String) -> String {
-        encode_text(&input).to_string()
-    }
-    //html decode
-    fn decode_html_string(&self, input: String) -> String {
-        decode_html_entities(&input).to_string()
-    }
-    //string to hex
-    fn string_to_hex(&self, input: &str) -> String {
-        // Convert the string to bytes and then encode to hex
-        encode(input.as_bytes())
-    }
-    //hex to string
-    fn hex_to_string(&self, hex: &str) -> String {
-        // Decode the hex string back to bytes
-        let bytes = decode(hex).expect("Invalid hex string");
-        // Convert the bytes back to a String
-        String::from_utf8_lossy(&bytes).to_string()
-    }
+fn main() -> std::io::Result<()> {
+    let mut terminal = ratatui::init();
+    let result = App::default().run(&mut terminal);
+    ratatui::restore();
+    result
 }
