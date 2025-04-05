@@ -31,10 +31,6 @@ html-escape = "0.2.13"
 hex = "0.4.3"
 
 
-[build]
-rustflags = ["-C", "target-cpu=native"]
-
-
 [profile.dev]
 opt-level = 0
 

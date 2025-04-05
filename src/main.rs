@@ -11,9 +11,9 @@ use ratatui::{
 };
 use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
-use utils::{base64, hex, html, json, md5};
+use utils::{ascii, base64, hex, html, json, md5};
 
-const ITEMS: [&str; 10] = [
+const ITEMS: [&str; 12] = [
     "0. MD5 HASH",
     "1. Base64 Encode",
     "2. Base64 Decode",
@@ -24,6 +24,8 @@ const ITEMS: [&str; 10] = [
     "7. HTML Decode",
     "8. String to Hex",
     "9. Hex to String",
+    "10. String to ASCII",
+    "11. ASCII to String",
 ];
 
 #[derive(Debug, Default)]
@@ -234,6 +236,14 @@ impl App {
                 9 => {
                     *process_msg = hex::hex_to_string(&message);
                     title_msg.push_str(" Hex to String");
+                }
+                10 => {
+                    *process_msg = ascii::string_to_ascii(&message);
+                    title_msg.push_str(" String to ASCII");
+                }
+                11 => {
+                    *process_msg = ascii::ascii_to_string(&message);
+                    title_msg.push_str(" ASCII to String");
                 }
                 _ => {
                     *process_msg = message;
