@@ -85,7 +85,7 @@ impl App {
     }
 
     fn push_message(&mut self, list_state: &mut ListState) {
-        self.message.push_str(self.input.value().into());
+        self.message.push_str(self.input.value());
         if let Some(i) = list_state.selected() {
             self.id = i;
         }
