@@ -41,3 +41,7 @@ lto = true
 incremental = true
 codegen-units = 1
 
+
+[[bin]]
+name = "radmintools-tui"
+path = "src/main.rs"
