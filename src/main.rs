@@ -2,15 +2,15 @@ mod utils;
 
 use crossterm::event::{self, Event, KeyCode};
 use ratatui::{
+    DefaultTerminal, Frame,
     layout::{Constraint, Layout, Rect},
     prelude::Alignment,
     style::{Color, Modifier, Style, Stylize},
     text::{Span, Text},
     widgets::{Block, BorderType, Borders, List, ListState, Paragraph, Wrap},
-    DefaultTerminal, Frame,
 };
-use tui_input::backend::crossterm::EventHandler;
 use tui_input::Input;
+use tui_input::backend::crossterm::EventHandler;
 use utils::{ascii, base64, hex, html, json, md5};
 
 const ITEMS: [&str; 12] = [

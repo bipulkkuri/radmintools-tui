@@ -1,4 +1,4 @@
-use base64::{decode_config, encode_config, URL_SAFE};
+use base64::{URL_SAFE, decode_config, encode_config};
 
 pub fn base64_encode(input: &[u8]) -> String {
     encode_config(input, URL_SAFE)
