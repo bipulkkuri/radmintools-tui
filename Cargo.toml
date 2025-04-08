@@ -1,6 +1,6 @@
 [package]
 name = "radmintools-tui"
-version = "0.1.2"
+version = "v0.1.2"
 edition = "2024"
 authors = ["Bipul Kuri <bipul.k.kuri@gmail.com>"]
 description = """
