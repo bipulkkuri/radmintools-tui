@@ -7,7 +7,7 @@ description = """
 A terminal user interfaces or common admin tools
 """
 readme = "README.md"
-keywords = ["admin tools", "tui", "terminal", "ui"]
+keywords = ["admin","tools", "tui", "terminal", "ui"]
 categories = ["command-line-utilities"]
 license = "MIT"
 exclude = ["assets/*", ".github", "Makefile.toml", "CONTRIBUTING.md", "*.log", "tags"]
