@@ -3,6 +3,7 @@
 
 A terminal user interfaces or common admin tools, with clipboard copy past support on terminal.
 
+[![crates.io](https://img.shields.io/crates/v/radmintools-tui)](https://crates.io/crates/radmintools-tui)
 
 ## Initial Screen
 <img src="./images/initial.png" alt="Demo Initial Screen">
